@@ -1,19 +1,21 @@
 '''
 VOLUME CALCULATION STL binary MODELS
-Author: Mar Canet (mar.canet@gmail.com) - september 2012
+Authors:
+    - Mar Canet (mar.canet@gmail.com) - september 2012
+    - Guillaume Jacquenot (guillaume.jacquenot@gmail.com) - april 2016
 Description: useful to calculate cost in a 3D printing ABS or PLA usage
 '''
 import struct
 import sys
 
-class STLUtils:
+class StlUtils:
 	def resetVariables(self):
 		self.normals = []
 		self.points = []
 		self.triangles = []
 		self.bytecount = []
 		self.fb = [] # debug list
-		
+
 	# Calculate volume fo the 3D mesh using Tetrahedron volume
 	# based in: http://stackoverflow.com/questions/1406029/how-to-calculate-the-volume-of-a-3d-mesh-object-the-surface-of-which-is-made-up
 	def signedVolumeOfTriangle(self,p1, p2, p3):
@@ -36,7 +38,7 @@ class STLUtils:
 		p2 = self.unpack("<3f", 12)
 		p3 = self.unpack("<3f", 12)
 		b  = self.unpack("<h", 2)
-		
+
 		self.normals.append(n)
 		l = len(self.points)
 		self.points.append(p1)
@@ -52,45 +54,43 @@ class STLUtils:
 
 	def read_header(self):
 		self.f.seek(self.f.tell()+80)
-		
+
 	def cm3_To_inch3Transform(self, v):
-		return v*0.0610237441
-		
-	def calculateWeight(self,volumeIn_cm):
-		return volumeIn_cm*1.04
-	
+		return v/(2.54**3)
+
 	def calculateVolume(self,infilename, unit):
-		print infilename
+		print(infilename)
 		self.resetVariables()
 		totalVolume = 0
 		try:
-			self.f = open( infilename, "rb")
+			self.f = open(infilename, "rb")
 			self.read_header()
 			l = self.read_length()
-			print "total triangles:",l
+			print("total triangles: {0}".format(l))
 			try:
 				while True:
-					totalVolume +=self.read_triangle()
-			except Exception, e:
+					totalVolume += self.read_triangle()
+			except Exception:
 				#print e
-				print "End calculate triangles volume"
-			#print len(self.normals), len(self.points), len(self.triangles), l, 
+				print("End calculate triangles volume")
+			#print len(self.normals), len(self.points), len(self.triangles), l,
 			if unit=="cm":
-				totalVolume = (totalVolume/1000)
-				print "Total volume:", totalVolume,"cm"
+				totalVolume /= 1000
+				print("Total volume: {0} cm^3".format(totalVolume))
 			else:
 				totalVolume = self.cm3_To_inch3Transform(totalVolume/1000)
-				print "Total volume:", totalVolume,"inch"
-		except Exception, e:
-			print e
+				print("Total volume: {0} inch^3".format(totalVolume))
+		except Exception:
+			pass
 		return totalVolume
 
 if __name__ == '__main__':
 	if len(sys.argv)==1:
-		print "Define model to calculate volume ej: python mesure_volume.py torus.stl"
+		print("Define model to calculate volume ej: python mesure_volume.py torus.stl")
 	else:
-		mySTLUtils = STLUtils()
+		mySTLUtils = StlUtils()
 		if(len(sys.argv)>2 and sys.argv[2]=="inch"):
-			mySTLUtils.calculateVolume(sys.argv[1],"inch")
+			unit = "inch"
 		else:
-			mySTLUtils.calculateVolume(sys.argv[1],"cm")
+			unit = "cm"
+		mySTLUtils.calculateVolume(sys.argv[1], unit)
